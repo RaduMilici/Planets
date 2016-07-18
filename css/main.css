@@ -1,0 +1,11 @@
+body{
+    margin: 0px;
+    overflow: hidden;
+    padding: 0px;
+}
+
+#WebGL{
+    position: fixed;
+    width: 100%;
+    height: 100%;
+}

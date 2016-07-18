@@ -6,18 +6,30 @@ var concat = require('gulp-concat');
 var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 var inject = require('gulp-inject');
+var wiredep = require('wiredep').stream;
 var webserver = require('gulp-webserver');
 
-//paths
+//paths;
 var js_path = './js';
+var css_path = './css'
 var build_path = './build';
 var build_name = 'build.js';
 var index_path = './index.html';
 var min_build_name = 'build.min.js';
 var components_path = path.join(js_path, 'components');
 
+//wiredep task
+gulp.task('wiredep', function () {
+  gulp.src('./index.html')
+    .pipe(wiredep({
+      optional: 'configuration',
+      goes: 'here'
+    }))
+    .pipe(gulp.dest("."));
+});
+
 //concat task
-gulp.task('concat', function(){
+gulp.task('concat', ['wiredep'], function(){
     return gulp.src([
         path.join(js_path, '**', 'app.js'),
         path.join(js_path, '**', '*.js')
@@ -39,9 +51,13 @@ gulp.task('compress', ['concat'], function(cb){
 //inject task
 gulp.task('inject', ['compress'], function(){
     var target = gulp.src(index_path);
-    var source = gulp.src(path.join(build_path, min_build_name), {read: false});
+    var sources = gulp.src([
+        path.join(js_path, 'app.js'),
+        path.join(js_path, '**', '*.js'),
+        path.join(css_path, '*.css')
+    ], {read: false});
 
-    return target.pipe(inject(source))
+    return target.pipe(inject(sources))
     .pipe(gulp.dest('./'));
 });
 
@@ -49,7 +65,7 @@ gulp.task('inject', ['compress'], function(){
 gulp.task('webserver', ['inject'], function(){
   gulp.src('.')
     .pipe(webserver({
-      livereload: true,
+      livereload: true,  
       open: true
     }));
 });
@@ -60,4 +76,4 @@ gulp.task('watch', function(){
 });
 
 //default task
-gulp.task('default', ['watch', 'concat', 'compress', 'inject', 'webserver']);
+gulp.task('default', ['watch', 'webserver']);
