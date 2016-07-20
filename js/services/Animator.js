@@ -1,4 +1,4 @@
-angular.module('App').factory('Animate', ['Renderer', function(Renderer){
+angular.module('App').factory('Animator', ['Renderer', function(Renderer){
 return function(settings){
   settings     = settings || {};
 //public fields

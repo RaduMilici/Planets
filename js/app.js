@@ -10,7 +10,7 @@ app.config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $ur
   $urlRouterProvider.otherwise("/main");
 
   //states
-  $stateProvider
+  $stateProvider 
     //main
     .state('main', {
       url: '/main',

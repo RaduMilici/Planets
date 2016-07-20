@@ -1,4 +1,4 @@
-angular.module('App').factory('Renderer', [function(){
+angular.module('App').factory('Renderer', ['updater', function(updater){
 return function(settings){
 
   settings = settings || {};
@@ -10,12 +10,22 @@ return function(settings){
   this.renderer = makeRenderer.bind(this)(this.width, this.height);
  
 //private fields
-  var frameID = undefined;
+  var frameID;
+  var currentTime = 0;
+  var passedTime;
+  var deltaTime;
+  var fps = 60;
+  var interval = 1000 / fps;  
   
 //public methods
 //-----------------------------------------------------------------------------
-  this.Render = function(){
+  this.Render = function(time){
 
+    passedTime = time - currentTime;
+    deltaTime = passedTime / interval;
+    currentTime = time;
+
+    updater.Update(deltaTime);
     this.renderer.render(this.project.loader.scene, this.project.animate.camera);
     frameID = requestAnimationFrame( this.Render.bind(this) );  
 
