@@ -71,9 +71,11 @@ gulp.task('webserver', ['inject'], function(){
 });
 
 //watch task
+/*
 gulp.task('watch', function(){
     gulp.watch(path.join(js_path, '**'), ['inject']);
 });
+*/
 
 //default task
-gulp.task('default', ['watch', 'webserver']);
+gulp.task('default', ['webserver']);

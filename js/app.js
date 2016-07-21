@@ -1,6 +1,6 @@
-var app = angular.module('App', ['ui.router'])
+angular.module('App', ['ui.router'])
 
-app.config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider){
+.config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider){
   //urls
   var partialsUrl   = '/partials'; 
   var templatesUrl  = partialsUrl + '/templates';

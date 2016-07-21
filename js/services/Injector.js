@@ -11,7 +11,7 @@ return function(loader){
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.LoadPrefab = function(name){
+  this.LoadPrefab = function(name){ 
 
     var defer = $q.defer();
 

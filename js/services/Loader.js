@@ -14,19 +14,30 @@ return function(settings){
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.LoadMesh = function(name){
+  this.LoadMesh = function(name){  
+
     //returns a promise that is resolved on load
     var defer = $q.defer();
+ 
+    //check if mesh already loaded once
+    if(loadedMeshes[name] !== undefined){
 
+      var clone = new THREE.Mesh(loadedMeshes[name].geometry.clone(), loadedMeshes[name].material.clone());
+      defer.resolve(extendMeshToPrefab.bind(this)(clone));
+
+    }
+    else   
+    //mesh not already loaded
     jsonLoader.load( paths.models + '/' + name + '.json', function(geometry, materials){
 
       //on load
       var material = new THREE.MultiMaterial( materials );
       var mesh = new THREE.Mesh( geometry, material );
-      mesh.loader = this;
-      mesh = _.extend(mesh, new Prefab());
 
-      //TODO: store mesh so its only loaded once
+      defer.resolve(extendMeshToPrefab.bind(this)(mesh));
+
+      //store mesh so its only loaded once
+      loadedMeshes[name] = mesh;
 
       defer.resolve(mesh);
 
@@ -36,6 +47,7 @@ return function(settings){
   };
 //-----------------------------------------------------------------------------
   this.LoadPrefab = function(name){
+
     var defer = $q.defer();
 
     this.injector.LoadPrefab(name).then(function(prefab){
@@ -44,6 +56,7 @@ return function(settings){
     }.bind(this));
 
     return defer.promise;
+    
   };
 //-----------------------------------------------------------------------------
   this.Add = function(obj, parent){
@@ -59,6 +72,12 @@ return function(settings){
     this.scene.remove(obj);
     
   };
+//private methods
+//-----------------------------------------------------------------------------
+  function extendMeshToPrefab(mesh){
+    mesh.loader = this;
+    return _.extend(mesh, new Prefab());
+  }
 //-----------------------------------------------------------------------------
 
 };

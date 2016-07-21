@@ -11,9 +11,9 @@ return function(settings){
  
 //private fields
   var frameID;
-  var currentTime = 0;
   var passedTime;
   var deltaTime;
+  var currentTime = 0;
   var fps = 60;
   var interval = 1000 / fps;  
   

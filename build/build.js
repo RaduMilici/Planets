@@ -1,6 +1,6 @@
-var app = angular.module('App', ['ui.router'])
+angular.module('App', ['ui.router'])
 
-app.config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider){
+.config(['$stateProvider', '$urlRouterProvider', function($stateProvider, $urlRouterProvider){
   //urls
   var partialsUrl   = '/partials'; 
   var templatesUrl  = partialsUrl + '/templates';
@@ -109,7 +109,9 @@ angular.module('App').controller('mainCtrl', ['$scope', 'Project', function($sco
    
 }]);
     
-angular.module('App').factory('Cube', ['Prefab', 'util', function(Prefab, util){
+angular.module('App').factory('Cube', 
+['Prefab', 'util', '$q',
+function(Prefab, util, $q){
 return function(){
   Prefab.call(this);
 
@@ -126,19 +128,42 @@ return function(){
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
     this.position.z -= 15;
+    var cubes = [];
+    var cubePromises = [];
 
-    loader.LoadMesh('cube').then(function(cube){
-      cube.position.y += 5;
-      cube.AddComponent('Rotate');
-      cube.components.Rotate.velocity.x = util.Deg2Rad(1);
-      cube.components.Rotate.velocity.y = util.Deg2Rad(1);
-      cube.components.Rotate.velocity.z = util.Deg2Rad(1);
-      this.add(cube);
-    }.bind(this));
+    _.times(5, function(){
 
-    this.components.Rotate.velocity.x = util.Deg2Rad(1);
-    this.components.Rotate.velocity.y = util.Deg2Rad(1);
-    this.components.Rotate.velocity.z = util.Deg2Rad(1);
+      var defer = $q.defer();  
+
+      loader.LoadMesh('cube').then(function(cube){          
+
+        cube.material.materials[0].color.setHex(0x0000ff);
+
+        cube.AddComponent('Rotate');
+        //cube.components.Rotate.velocity.x = util.Deg2Rad(1);
+        //cube.components.Rotate.velocity.y = util.Deg2Rad(1);
+        cube.components.Rotate.velocity.z = util.Deg2Rad(122); 
+
+        cubes.push(cube);
+        defer.resolve();
+        this.add(cube); 
+
+      }.bind(this));//load
+
+      cubePromises.push(defer);
+
+    }.bind(this));//times 
+
+    $q.all(cubePromises).then(function(){
+      _.each(cubes, function(cube, i){
+          cube.position.x = 0 + 5 * Math.cos(util.Deg2Rad((360 / cubes.length) * i));
+          cube.position.y = 0 + 5 * Math.sin(util.Deg2Rad((360 / cubes.length) * i));
+      });
+    });
+
+    //this.components.Rotate.velocity.x = util.Deg2Rad(1);
+    this.components.Rotate.velocity.y = util.Deg2Rad(0.3);
+    //this.components.Rotate.velocity.z = util.Deg2Rad(1);
   };
 //-----------------------------------------------------------------------------
   this.Stop = function(){
@@ -247,7 +272,7 @@ return function(loader){
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.LoadPrefab = function(name){
+  this.LoadPrefab = function(name){ 
 
     var defer = $q.defer();
 
@@ -357,19 +382,31 @@ return function(settings){
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.LoadMesh = function(name){
+  this.LoadMesh = function(name){   
+
     //returns a promise that is resolved on load
     var defer = $q.defer();
+ 
+    //check if mesh already loaded once
+    if(loadedMeshes[name] !== undefined){
 
+      var clone = new THREE.Mesh(loadedMeshes[name].geometry.clone(), loadedMeshes[name].material.clone());
+
+      defer.resolve(extendMeshToPrefab.bind(this)(clone));
+
+    }
+    else   
+    //mesh not already loaded
     jsonLoader.load( paths.models + '/' + name + '.json', function(geometry, materials){
 
       //on load
       var material = new THREE.MultiMaterial( materials );
       var mesh = new THREE.Mesh( geometry, material );
-      mesh.loader = this;
-      mesh = _.extend(mesh, new Prefab());
 
-      //TODO: store mesh so its only loaded once
+      defer.resolve(extendMeshToPrefab.bind(this)(mesh));
+
+      //store mesh so its only loaded once
+      loadedMeshes[name] = mesh;
 
       defer.resolve(mesh);
 
@@ -379,6 +416,7 @@ return function(settings){
   };
 //-----------------------------------------------------------------------------
   this.LoadPrefab = function(name){
+
     var defer = $q.defer();
 
     this.injector.LoadPrefab(name).then(function(prefab){
@@ -387,6 +425,7 @@ return function(settings){
     }.bind(this));
 
     return defer.promise;
+    
   };
 //-----------------------------------------------------------------------------
   this.Add = function(obj, parent){
@@ -402,6 +441,12 @@ return function(settings){
     this.scene.remove(obj);
     
   };
+//private methods
+//-----------------------------------------------------------------------------
+  function extendMeshToPrefab(mesh){
+    mesh.loader = this;
+    return _.extend(mesh, new Prefab());
+  }
 //-----------------------------------------------------------------------------
 
 };
@@ -420,9 +465,9 @@ return function(settings){
  
 //private fields
   var frameID;
-  var currentTime = 0;
   var passedTime;
   var deltaTime;
+  var currentTime = 0;
   var fps = 60;
   var interval = 1000 / fps;  
   
