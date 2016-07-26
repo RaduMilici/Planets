@@ -11,7 +11,7 @@ return function(loader){
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.LoadPrefab = function(name){ 
+  this.LoadPrefab = function(name, position){ 
 
     var defer = $q.defer();
 
@@ -25,12 +25,11 @@ return function(loader){
     //load mesh dependencies
     loadMeshes(prefab)
     //load component dependencies
-      .then(loadComponents)
+      .then(loadComponents.bind(this))
     //add to scene and call Start()
       .then(function(){
-        prefab.loader = this.loader;
+        prefab.loader = this.loader
         defer.resolve(prefab);
-        prefab.Start(scope.loader);
       }.bind(this));
 
     return defer.promise;

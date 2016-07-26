@@ -13,19 +13,21 @@ return function(settings){
   var frameID;
   var passedTime;
   var deltaTime;
-  var currentTime = 0;
+  var now = _.now();
+  var currentTime = now;
   var fps = 60;
   var interval = 1000 / fps;  
   
 //public methods
 //-----------------------------------------------------------------------------
-  this.Render = function(time){
+  this.Render = function(time){ 
 
-    passedTime = time - currentTime;
+    now = _.now();
+    passedTime = now - currentTime;
     deltaTime = passedTime / interval;
-    currentTime = time;
+    currentTime = now;
 
-    updater.Update(deltaTime);
+    updater.Update(deltaTime, passedTime);
     this.renderer.render(this.project.loader.scene, this.project.animate.camera);
     frameID = requestAnimationFrame( this.Render.bind(this) );  
 

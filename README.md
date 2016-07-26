@@ -5,3 +5,7 @@
 >Every Entity consists of one or more components which add additional behavior or functionality. Therefore the behavior of an entity can be changed at runtime by adding or removing components. 
 
 >This eliminates the ambiguity problems of deep and wide inheritance hierarchies that are difficult to understand, maintain and extend. Common ECS approaches are highly compatible and often combined with data oriented design techniques.
+
+1: npm install
+2: bower install
+3: gulp

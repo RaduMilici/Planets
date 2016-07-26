@@ -29,10 +29,10 @@ angular.module('App').factory("updater", ["$log", function($log){
         return false;
     },
 
-    Update: function (frame) {
+    Update: function (deltaTime, passedTime) {
 
       for (var i = 0; i < this.handlers.length; i++) 
-        this.handlers[i].Update(frame);
+        this.handlers[i].Update(deltaTime, passedTime);
       
       //this.renderFunction();
 

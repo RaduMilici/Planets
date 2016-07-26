@@ -1,8 +1,7 @@
 angular.module('App').factory('Loader', 
-['$q', 'Injector', 'paths', 'Prefab', 
-function($q, Injector, paths, Prefab){
-return function(settings){
-  settings = settings || {};
+['$q', '$http', 'Injector', 'paths', 'Prefab', 
+function($q, $http, Injector, paths, Prefab){
+return function(name){
 
 //public fields
   this.scene = new THREE.Scene();
@@ -11,6 +10,9 @@ return function(settings){
 //private fields
   var jsonLoader = new THREE.JSONLoader();
   var loadedMeshes = {};
+
+  loadProject.bind(this)(name);
+
 
 //public methods
 //-----------------------------------------------------------------------------
@@ -46,17 +48,45 @@ return function(settings){
     return defer.promise;
   };
 //-----------------------------------------------------------------------------
-  this.LoadPrefab = function(name){
+  this.LoadPrefab = function(name, position){
 
     var defer = $q.defer();
 
     this.injector.LoadPrefab(name).then(function(prefab){
+      prefab.position.set(position.x, position.y, position.z);
       this.Add(prefab);
+      prefab.Start(this);
       defer.resolve(prefab);
     }.bind(this));
 
     return defer.promise;
     
+  };
+//-----------------------------------------------------------------------------
+  this.LoadPrefabs = function(prefabsArray){
+
+    var defer = $q.defer();
+    var promises = [];
+
+    //request to load each mesh dependency
+    _.each(prefabsArray, function(prefab){
+      var promise = this.LoadPrefab(prefab.name, prefab.position);
+
+      promise.then(function(loadedPrefab){
+        
+      });
+
+      promises.push(promise);
+
+    }.bind(this));//end each
+
+    //all loaded
+    $q.all(promises).then(function () { 
+      defer.resolve();
+    });
+
+    return defer.promise;
+
   };
 //-----------------------------------------------------------------------------
   this.Add = function(obj, parent){
@@ -79,6 +109,18 @@ return function(settings){
     return _.extend(mesh, new Prefab());
   }
 //-----------------------------------------------------------------------------
+  function loadProject (name){
+    $http.get(paths.projects + '/' + name + '.json')
 
+      .success(function(data){
+        this.LoadPrefabs(data.prefabs);
+      }.bind(this))
+
+      .error(function(){
+        console.error('could not read project ' + name);
+      })
+    
+  };
+//-----------------------------------------------------------------------------
 };
 }]);

@@ -6,7 +6,7 @@ return function(){
 //public fields
   this.name  = '';
   this.id    = '';
-  this.layer = '';
+  this.layer = ''; 
   this.meshes = [];
   this.components = [];
   this.uid = _.uniqueId();

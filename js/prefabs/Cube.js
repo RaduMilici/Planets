@@ -1,6 +1,6 @@
 angular.module('App').factory('Cube', 
-['Prefab', 'util', '$q',
-function(Prefab, util, $q){
+['Prefab', 'util', '$q', 'Tween',
+function(Prefab, util, $q, Tween){
 return function(){
   Prefab.call(this);
 
@@ -16,13 +16,8 @@ return function(){
 //public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
-    this.position.z -= 15;
-
-    createCubes.bind(this)(20).then(positionCubes.bind(this)); 
-
-    //this.components.Rotate.velocity.x = util.Deg2Rad(1);
-    this.components.Rotate.velocity.y = util.Deg2Rad(0.3);
-    //this.components.Rotate.velocity.z = util.Deg2Rad(1);
+    createCubes.bind(this)(1000).then(positionCubes.bind(this)); 
+    this.components.Rotate.velocity.y = util.Deg2Rad(0.3);    
   };
 
 //private methods
@@ -32,14 +27,14 @@ return function(){
     var createCubesPromise = $q.defer();  
     var cubes = [];
     var cubePromises = [];
-
+ 
     _.times(num, function(){
       var defer = $q.defer();  
 
       this.loader.LoadMesh('cube').then(function(cube){  
         
         //on load
-        cube.material.materials[0].color.setHex(Math.random() * 0xffffff);
+        cube.material.materials[0].color.setHex(Math.random() * 0x00003f);
 
         cube.AddComponent('Rotate');
         cube.components.Rotate.velocity.x = util.Deg2Rad(Math.random());
@@ -56,6 +51,7 @@ return function(){
 
     }.bind(this));//times 
 
+    //all cubes loaded
     $q.all(cubePromises).then(function(){
       createCubesPromise.resolve(cubes);
     });
@@ -65,9 +61,25 @@ return function(){
   } 
 //----------------------------------------------------------------------------- 
   function positionCubes(cubesArray){
+    //positions bubes around parent in a circle
     _.each(cubesArray, function(cube, i){
-        cube.position.x = this.position.x + 5 * Math.cos(util.Deg2Rad((360 / cubesArray.length) * i));
-        cube.position.y = this.position.y + 5 * Math.sin(util.Deg2Rad((360 / cubesArray.length) * i));
+        cube.position.x = 5 * Math.cos(util.Deg2Rad((360 / cubesArray.length) * i));
+        cube.position.y = 5 * Math.sin(util.Deg2Rad((360 / cubesArray.length) * i));
+
+        var tween = new Tween(cube.position); 
+
+        function come(){
+          tween.To({z: 0}, 2);
+          tween.Start(go);
+        }
+
+        function go(){
+          tween.To({z: util.Random(-5, 5)}, 2);
+          tween.Start(come);
+        }
+
+        go();
+
     }.bind(this));
   }
 //----------------------------------------------------------------------------- 
