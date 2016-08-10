@@ -15,8 +15,8 @@ return new (function(){
 
   };
 //-----------------------------------------------------------------------------
-  this.Random = function ( min, max ) {
-
+  this.RandomNumber = function ( min, max ) {
+ 
     return Math.floor( Math.random() * (max - min + 1 ) + min );
 
   }

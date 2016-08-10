@@ -7,7 +7,7 @@ angular.module('App', ['ui.router'])
   var directivesUrl = partialsUrl + '/directives';
 
   //for any unmatched url, redirect to /main
-  $urlRouterProvider.otherwise("/main");
+  $urlRouterProvider.otherwise('/main');
 
   //states
   $stateProvider 

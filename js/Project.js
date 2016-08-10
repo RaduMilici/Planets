@@ -7,9 +7,6 @@ return function(name){
 //public fields
   this.loader = new Loader(name);
   this.animate = new Animator({project: this});
-
-  //this.loader.LoadPrefab('Cube');
-
   this.animate.Start(); 
 
 };

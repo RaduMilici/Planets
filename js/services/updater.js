@@ -15,7 +15,8 @@ angular.module('App').factory("updater", ["$log", function($log){
 
       var index = this.handlers.indexOf(h);
 
-      if(index > -1) this.handlers.splice(index, 1);
+      if (index > -1) 
+        this.handlers.splice(index, 1);
 
     },
 
@@ -31,10 +32,9 @@ angular.module('App').factory("updater", ["$log", function($log){
 
     Update: function (deltaTime, passedTime) {
 
-      for (var i = 0; i < this.handlers.length; i++) 
-        this.handlers[i].Update(deltaTime, passedTime);
-      
-      //this.renderFunction();
+      _.each(this.handlers, function(h){
+        h.Update(deltaTime, passedTime);
+      });
 
     },
 

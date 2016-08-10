@@ -3,11 +3,7 @@
   [
     {
       "name": "Cube",
-      "position": { "x": -5, "y": 0, "z": -20 }
-    },
-    {
-      "name": "Cube",
-      "position": { "x": 5, "y": 0, "z": -20 }
+      "position": { "x": 0, "y": 0, "z": -20 }
     }
   ]
 }

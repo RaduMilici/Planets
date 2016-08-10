@@ -1,6 +1,7 @@
 angular.module('App').factory('Cube', 
-['Prefab', 'util', '$q', 'Tween',
-function(Prefab, util, $q, Tween){
+['Prefab', 'util', '$q', 
+function(Prefab, util, $q){
+  
 return function(){
   Prefab.call(this);
 
@@ -11,13 +12,17 @@ return function(){
   this.meshes = ['cube'];
   this.components = ['Rotate'];
   this.uid = _.uniqueId();
-  var scope = this;
 
 //public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
-    createCubes.bind(this)(1000).then(positionCubes.bind(this)); 
-    this.components.Rotate.velocity.y = util.Deg2Rad(0.3);    
+
+    createCubes.bind(this)(40).then(positionCubes.bind(this)); 
+
+    this.components.Rotate.velocity.x = 
+    this.components.Rotate.velocity.y = 
+    this.components.Rotate.velocity.z = util.Deg2Rad(0.3); 
+    
   };
 
 //private methods
@@ -34,7 +39,7 @@ return function(){
       this.loader.LoadMesh('cube').then(function(cube){  
         
         //on load
-        cube.material.materials[0].color.setHex(Math.random() * 0x00003f);
+        cube.material.materials[0].color.setHex(Math.random() * 0x0000ff);
 
         cube.AddComponent('Rotate');
         cube.components.Rotate.velocity.x = util.Deg2Rad(Math.random());
@@ -63,22 +68,10 @@ return function(){
   function positionCubes(cubesArray){
     //positions bubes around parent in a circle
     _.each(cubesArray, function(cube, i){
-        cube.position.x = 5 * Math.cos(util.Deg2Rad((360 / cubesArray.length) * i));
-        cube.position.y = 5 * Math.sin(util.Deg2Rad((360 / cubesArray.length) * i));
 
-        var tween = new Tween(cube.position); 
-
-        function come(){
-          tween.To({z: 0}, 2);
-          tween.Start(go);
-        }
-
-        function go(){
-          tween.To({z: util.Random(-5, 5)}, 2);
-          tween.Start(come);
-        }
-
-        go();
+        var radius = 10;
+        cube.position.x = radius * Math.cos(util.Deg2Rad((360 / cubesArray.length) * i));
+        cube.position.y = radius * Math.sin(util.Deg2Rad((360 / cubesArray.length) * i));
 
     }.bind(this));
   }

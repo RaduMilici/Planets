@@ -7,7 +7,7 @@ angular.module('App', ['ui.router'])
   var directivesUrl = partialsUrl + '/directives';
 
   //for any unmatched url, redirect to /main
-  $urlRouterProvider.otherwise("/main");
+  $urlRouterProvider.otherwise('/main');
 
   //states
   $stateProvider 
@@ -30,10 +30,7 @@ return function(name){
 //public fields
   this.loader = new Loader(name);
   this.animate = new Animator({project: this});
-
-  //this.loader.LoadPrefab('Cube');
-
-  this.animate.Start();  
+  this.animate.Start(); 
 
 };
 }]);
@@ -68,13 +65,12 @@ return function(){
 }]);
 
 angular.module('App').factory('Rotate', ['Component', function(Component){
-return function(prefab){ 
+return function(){ 
   
   Component.call(this);
 
 //public fields
   this.velocity = new THREE.Vector3();
-  this.prefab = prefab;
 
 //private fields
 
@@ -87,10 +83,12 @@ return function(prefab){
   };
 //-----------------------------------------------------------------------------
   this.Update = function(deltaTime){
+    
     this.prefab.rotation.x += this.velocity.x * deltaTime;
     this.prefab.rotation.y += this.velocity.y * deltaTime;
     this.prefab.rotation.z += this.velocity.z * deltaTime;
-  };
+  
+};
 //private methods
 //-----------------------------------------------------------------------------
 
@@ -103,26 +101,149 @@ angular.module('App').controller('mainCtrl', ['$scope', 'Project', function($sco
    
 }]);
     
+angular.module('App').factory('Cube', 
+['Prefab', 'util', '$q', 
+function(Prefab, util, $q){
+  
+return function(){
+  Prefab.call(this);
+
+//public fields
+  this.name  = 'Cube';
+  this.id    = '';
+  this.layer = '';
+  this.meshes = ['cube'];
+  this.components = ['Rotate'];
+  this.uid = _.uniqueId();
+
+//public methods
+//-----------------------------------------------------------------------------
+  this.Start = function(loader){
+
+    createCubes.bind(this)(100).then(positionCubes.bind(this)); 
+    this.components.Rotate.velocity.x = 
+    this.components.Rotate.velocity.y = 
+    this.components.Rotate.velocity.z = util.Deg2Rad(0.3); 
+    
+  };
+
+//private methods
+//-----------------------------------------------------------------------------
+  function createCubes(num){
+
+    var createCubesPromise = $q.defer();  
+    var cubes = [];
+    var cubePromises = [];
+ 
+    _.times(num, function(){
+      var defer = $q.defer();  
+
+      this.loader.LoadMesh('cube').then(function(cube){  
+        
+        //on load
+        cube.material.materials[0].color.setHex(Math.random() * 0x0000ff);
+
+        cube.AddComponent('Rotate');
+        cube.components.Rotate.velocity.x = util.Deg2Rad(Math.random());
+        cube.components.Rotate.velocity.y = util.Deg2Rad(Math.random());
+        cube.components.Rotate.velocity.z = util.Deg2Rad(Math.random()); 
+
+        cubes.push(cube);
+        defer.resolve();
+        this.add(cube); 
+
+      }.bind(this));//load
+
+      cubePromises.push(defer);
+
+    }.bind(this));//times 
+
+    //all cubes loaded
+    $q.all(cubePromises).then(function(){
+      createCubesPromise.resolve(cubes);
+    });
+
+    return createCubesPromise.promise;
+
+  } 
+//----------------------------------------------------------------------------- 
+  function positionCubes(cubesArray){
+    //positions bubes around parent in a circle
+    _.each(cubesArray, function(cube, i){
+
+        var radius = 10;
+        cube.position.x = radius * Math.cos(util.Deg2Rad((360 / cubesArray.length) * i));
+        cube.position.y = radius * Math.sin(util.Deg2Rad((360 / cubesArray.length) * i));
+
+    }.bind(this));
+  }
+//----------------------------------------------------------------------------- 
+
+};
+}]);
+
+angular.module('App').factory('Prefab', [function(){
+return function(){
+
+  THREE.Object3D.call(this);
+
+//public fields
+  this.name  = '';
+  this.id    = '';
+  this.layer = ''; 
+  this.meshes = [];
+  this.components = [];
+  this.uid = _.uniqueId();
+
+//public methods
+//-----------------------------------------------------------------------------
+  this.Start = function(){
+
+  };
+//-----------------------------------------------------------------------------
+  this.Stop = function(){
+
+  };
+//-----------------------------------------------------------------------------
+  this.Destroy = function(){
+
+  };
+//-----------------------------------------------------------------------------
+  this.Update = function(){
+
+  };
+//-----------------------------------------------------------------------------
+  this.AddComponent = function(componentName){
+
+    this.loader.injector.AddComponent(this, componentName);
+
+  }; 
+//-----------------------------------------------------------------------------
+
+};
+}]);
+
 angular.module('App').factory('Animator', ['Renderer', function(Renderer){
 return function(settings){
+  
   settings     = settings || {};
 //public fields
   this.project = settings.project;
   this.camFov  = settings.camFov  || 45;
   this.camNear = settings.camNear || 1;
   this.camFar  = settings.camFar  || 1000;
-
-  this.renderer = new Renderer({project: this.project});
+ 
+  this.renderer = new Renderer({ project: this.project, containerID: 'WebGL' });
   this.camera   = makeCamera.bind(this)();
-  this.controls = undefined;  
+  this.controls = undefined;   
 
-//public methods
+//public methods 
 //-----------------------------------------------------------------------------
-  this.Start = function(){ 
+  this.Start = function(){  
 
     this.renderer.Render();
 
-  };
+  }; 
 //private methods
 //-----------------------------------------------------------------------------
   function makeCamera(){  
@@ -135,106 +256,104 @@ return function(settings){
 };
 }]);
 
-angular.module('App').factory('Injector',  
-['$q', '$injector', 'paths', 'updater',
+angular.module('App').factory('Injector', ['$q', '$injector', 'paths', 'updater',
 function($q, $injector, paths, updater){
-return function(loader){
+  
+	return function(loader){
 
 //public fields
-  this.loader = loader;
+  	this.loader = loader;
 
 //private fields
-  var scope = this;
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.LoadPrefab = function(name, position){ 
+  	this.LoadPrefab = function(name, position){ 
 
-    var defer = $q.defer();
-
+    	var defer = $q.defer();
     //constructor
-    var InjectedPrefab = inject(name);
+    	var InjectedPrefab = inject(name);
     //instantiated
-    var obj = new THREE.Object3D();
-    var prefab = new InjectedPrefab();
+    	var obj = new THREE.Object3D();
+    	var prefab = new InjectedPrefab();
     //assign all THREE.Object3D properties
-    prefab = _.extend(new THREE.Object3D(), prefab);
+    	prefab = _.extend(new THREE.Object3D(), prefab);
     //load mesh dependencies
-    loadMeshes(prefab)
+    	loadMeshes.bind(this)(prefab)
     //load component dependencies
       .then(loadComponents.bind(this))
     //add to scene and call Start()
       .then(function(){
-        prefab.loader = this.loader
-        defer.resolve(prefab);
+        	prefab.loader = this.loader;
+        	defer.resolve(prefab);
       }.bind(this));
 
-    return defer.promise;
+    	return defer.promise;
 
   };
 //-----------------------------------------------------------------------------
-  this.AddComponent = function(prefab, componentName){
+  	this.AddComponent = function(prefab, componentName){
 
-    var injectedComponent = inject(componentName);
-    prefab.components[componentName] = new injectedComponent(prefab);
-    updater.Add(prefab.components[componentName]);
+    	var injectedComponent = inject(componentName);
+    	prefab.components[componentName] = new injectedComponent();
+    	prefab.components[componentName].prefab = prefab;
+    	updater.Add(prefab.components[componentName]);
 
   };
 //private methods
 //-----------------------------------------------------------------------------
   function inject(name){
 
-    return $injector.get(name);
-
-  };
-//-----------------------------------------------------------------------------
-  function loadMeshes(prefab){  
-
-    var defer = $q.defer();
-    var meshPromises = [];
-    var loadedMeshes = {};
-
-    //request to load each mesh dependency
-    _.each(prefab.meshes, function(meshName){
-
-      var promise = scope.loader.LoadMesh(meshName);
-
-      promise.then(function(loadedMesh){
-        loadedMeshes[meshName] = loadedMesh;
-        prefab.add(loadedMesh);
-      });
-
-      meshPromises.push(promise);
-
-    });//end each
-
-    //all loaded
-    $q.all(meshPromises).then(function () { 
-      prefab.meshes = loadedMeshes;
-      defer.resolve(prefab);
-    });
-
-    return defer.promise;
+    	return $injector.get(name);
 
   }
 //-----------------------------------------------------------------------------
-  function loadComponents(prefab){
+  	function loadMeshes(prefab){  
 
-    var defer = $q.defer();
-    var loadedComponents = {};
+    	var defer = $q.defer();
+    	var meshPromises = [];
+    	var loadedMeshes = {};
 
-    _.each(prefab.components, function(componentName){
+    //request to load each mesh dependency
+    	_.each(prefab.meshes, function(meshName){
 
-      var injectedComponent = inject(componentName);
-      loadedComponents[componentName] = new injectedComponent(prefab);
-      updater.Add(loadedComponents[componentName]);
+      	var promise = this.loader.LoadMesh(meshName);
 
-    });//end each
+      	promise.then(function(loadedMesh){
 
-    prefab.components = loadedComponents;
+        	loadedMeshes[meshName] = loadedMesh;
+        	prefab.add(loadedMesh);
 
-    defer.resolve();
-    return defer.promise;
+      });
+
+      	meshPromises.push(promise);
+
+    }.bind(this));//end each
+
+    //all loaded
+    	$q.all(meshPromises).then(function () { 
+
+      	prefab.meshes = loadedMeshes;
+      	defer.resolve(prefab);
+
+    });
+
+    	return defer.promise;
+
+  }
+//-----------------------------------------------------------------------------
+  	function loadComponents(prefab){
+
+    	var defer = $q.defer();
+
+    	_.each(prefab.components, function(componentName){
+
+      	this.AddComponent(prefab, componentName);
+
+    }.bind(this));//end each
+
+    	defer.resolve();
+    	return defer.promise;
   }
 //-----------------------------------------------------------------------------
 
@@ -383,19 +502,21 @@ return function(settings){
   var frameID;
   var passedTime;
   var deltaTime;
-  var currentTime = 0;
+  var now = _.now();
+  var currentTime = now;
   var fps = 60;
   var interval = 1000 / fps;  
   
 //public methods
 //-----------------------------------------------------------------------------
-  this.Render = function(time){
+  this.Render = function(time){ 
 
-    passedTime = time - currentTime;
+    now = _.now();
+    passedTime = now - currentTime;
     deltaTime = passedTime / interval;
-    currentTime = time;
+    currentTime = now;
 
-    updater.Update(deltaTime);
+    updater.Update(deltaTime, passedTime);
     this.renderer.render(this.project.loader.scene, this.project.animate.camera);
     frameID = requestAnimationFrame( this.Render.bind(this) );  
 
@@ -431,49 +552,6 @@ return function(settings){
 };
 }]);
 
-angular.module('App').factory('Tween', ['animate', function(animate){
-return function(objectToTween){ 
-
-//public fields
-
-//private fields
-  var time;
-  var toObject;
-  var toObjectKeys;
-  var fromObject = objectToTween;
-  var perUpdateValues = {};
-
-//public methods
-//-----------------------------------------------------------------------------
-  this.To = function(propsToTween, tweenTime){
-
-    toObjectKeys = _.keys(propsToTween);
-    toObject = propsToTween;
-    time = tweenTime;
-
-  };
-//-----------------------------------------------------------------------------
-  this.Update = function(deltaTime){
-    
-  };
-//private methods
-//-----------------------------------------------------------------------------
-  function setPerUpdateValues(){
-
-    _.each(toObjectKeys, function(propKey){
-
-      var from = fromObject[propKey];
-      var to   = toObject[propKey];
-
-      //var perUpdate = (to - from) / 
-
-    });
-
-  }
-//-----------------------------------------------------------------------------
-};
-}]);
-
 angular.module('App').factory('paths', [function(){
 return new (function(){
 
@@ -505,7 +583,8 @@ angular.module('App').factory("updater", ["$log", function($log){
 
       var index = this.handlers.indexOf(h);
 
-      if(index > -1) this.handlers.splice(index, 1);
+      if (index > -1) 
+        this.handlers.splice(index, 1);
 
     },
 
@@ -519,12 +598,11 @@ angular.module('App').factory("updater", ["$log", function($log){
         return false;
     },
 
-    Update: function (frame) {
+    Update: function (deltaTime, passedTime) {
 
-      for (var i = 0; i < this.handlers.length; i++) 
-        this.handlers[i].Update(frame);
-      
-      //this.renderFunction();
+      _.each(this.handlers, function(h){
+        h.Update(deltaTime, passedTime);
+      });
 
     },
 
@@ -552,8 +630,8 @@ return new (function(){
 
   };
 //-----------------------------------------------------------------------------
-  this.RandomNum = function ( min, max ) {
-
+  this.RandomNumber = function ( min, max ) {
+ 
     return Math.floor( Math.random() * (max - min + 1 ) + min );
 
   }
@@ -562,117 +640,10 @@ return new (function(){
 })();
 }]);
 
-angular.module('App').factory('Cube', 
-['Prefab', 'util', '$q',
-function(Prefab, util, $q){
-return function(){
-  Prefab.call(this);
-
-//public fields
-  this.name  = 'Cube';
-  this.id    = '';
-  this.layer = '';
-  this.meshes = ['cube'];
-  this.components = ['Rotate'];
-  this.uid = _.uniqueId();
-  var scope = this;
-
-//public methods
-//-----------------------------------------------------------------------------
-  this.Start = function(loader){
-    createCubes.bind(this)(20).then(positionCubes.bind(this)); 
-    this.components.Rotate.velocity.y = util.Deg2Rad(0.3);
-  };
-
-//private methods
-//-----------------------------------------------------------------------------
-  function createCubes(num){
-
-    var createCubesPromise = $q.defer();  
-    var cubes = [];
-    var cubePromises = [];
- 
-    _.times(num, function(){
-      var defer = $q.defer();  
-
-      this.loader.LoadMesh('cube').then(function(cube){  
-        
-        //on load
-        cube.material.materials[0].color.setHex(Math.random() * 0x00003f);
-
-        cube.AddComponent('Rotate');
-        cube.components.Rotate.velocity.x = util.Deg2Rad(Math.random());
-        cube.components.Rotate.velocity.y = util.Deg2Rad(Math.random());
-        cube.components.Rotate.velocity.z = util.Deg2Rad(Math.random()); 
-
-        cubes.push(cube);
-        defer.resolve();
-        this.add(cube); 
-
-      }.bind(this));//load
-
-      cubePromises.push(defer);
-
-    }.bind(this));//times 
-
-    //all cubes loaded
-    $q.all(cubePromises).then(function(){
-      createCubesPromise.resolve(cubes);
-    });
-
-    return createCubesPromise.promise;
-
-  } 
-//----------------------------------------------------------------------------- 
-  function positionCubes(cubesArray){
-    //positions bubes around parent in a circle
-    _.each(cubesArray, function(cube, i){
-        cube.position.x = 5 * Math.cos(util.Deg2Rad((360 / cubesArray.length) * i));
-        cube.position.y = 5 * Math.sin(util.Deg2Rad((360 / cubesArray.length) * i));
-    }.bind(this));
-  }
-//----------------------------------------------------------------------------- 
-
-};
-}]);
-
-angular.module('App').factory('Prefab', [function(){
+angular.module('App').factory('Shader', [function(){
 return function(){
 
-  THREE.Object3D.call(this);
-
-//public fields
-  this.name  = '';
-  this.id    = '';
-  this.layer = ''; 
-  this.meshes = [];
-  this.components = [];
-  this.uid = _.uniqueId();
-
-//public methods
-//-----------------------------------------------------------------------------
-  this.Start = function(){
-
-  };
-//-----------------------------------------------------------------------------
-  this.Stop = function(){
-
-  };
-//-----------------------------------------------------------------------------
-  this.Destroy = function(){
-
-  };
-//-----------------------------------------------------------------------------
-  this.Update = function(){
-
-  };
-//-----------------------------------------------------------------------------
-  this.AddComponent = function(componentName){
-
-    this.loader.injector.AddComponent(this, componentName);
-
-  }; 
-//-----------------------------------------------------------------------------
+  
 
 };
 }]);
