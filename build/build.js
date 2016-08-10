@@ -95,12 +95,6 @@ return function(){
 };
 }]);
 
-angular.module('App').controller('mainCtrl', ['$scope', 'Project', function($scope, Project){  
-
-  new Project('testProject');
-   
-}]);
-    
 angular.module('App').factory('Cube', 
 ['Prefab', 'util', '$q', 
 function(Prefab, util, $q){
@@ -120,7 +114,8 @@ return function(){
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
 
-    createCubes.bind(this)(100).then(positionCubes.bind(this)); 
+    createCubes.bind(this)(40).then(positionCubes.bind(this)); 
+
     this.components.Rotate.velocity.x = 
     this.components.Rotate.velocity.y = 
     this.components.Rotate.velocity.z = util.Deg2Rad(0.3); 
@@ -178,6 +173,18 @@ return function(){
     }.bind(this));
   }
 //----------------------------------------------------------------------------- 
+
+};
+}]);
+
+angular.module('App').factory('Planet', 
+['Prefab', 'util', '$q', 
+function(Prefab, util, $q){
+  
+return function(){
+  Prefab.call(this);
+
+//public fields
 
 };
 }]);
@@ -647,3 +654,10 @@ return function(){
 
 };
 }]);
+
+angular.module('App').controller('mainCtrl', ['$scope', 'Project', function($scope, Project){  
+
+  new Project('testProject');
+   
+}]);
+    
