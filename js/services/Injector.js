@@ -10,29 +10,29 @@ function($q, $injector, paths, updater){
 
 //public methods
 //-----------------------------------------------------------------------------
-  	this.LoadPrefab = function(name, position){ 
+	this.LoadPrefab = function(name, settings){ 
 
-    	var defer = $q.defer();
-    //constructor
-    	var InjectedPrefab = inject(name);
-    //instantiated
-    	var obj = new THREE.Object3D();
-    	var prefab = new InjectedPrefab();
-    //assign all THREE.Object3D properties
-    	prefab = _.extend(new THREE.Object3D(), prefab);
-    //load mesh dependencies
-    	loadMeshes.bind(this)(prefab)
-    //load component dependencies
-      .then(loadComponents.bind(this))
-    //add to scene and call Start()
-      .then(function(){
-        	prefab.loader = this.loader;
-        	defer.resolve(prefab);
-      }.bind(this));
+		var defer = $q.defer();
+	//constructor
+		var InjectedPrefab = inject(name);
+	//instantiated
+		var obj = new THREE.Object3D();
+		var prefab = new InjectedPrefab(settings);
+	//assign all THREE.Object3D properties
+		prefab = _.extend(new THREE.Object3D(), prefab);
+	//load mesh dependencies
+		loadMeshes.bind(this)(prefab)
+	//load component dependencies
+		.then(loadComponents.bind(this))
+	//add to scene and call Start()
+		.then(function(){
+				prefab.loader = this.loader;
+				defer.resolve(prefab);
+		}.bind(this));
 
-    	return defer.promise;
+		return defer.promise;
 
-  };
+	};
 //-----------------------------------------------------------------------------
   	this.AddComponent = function(prefab, componentName){
 

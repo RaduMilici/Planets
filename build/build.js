@@ -95,6 +95,12 @@ return function(){
 };
 }]);
 
+angular.module('App').controller('mainCtrl', ['$scope', 'Project', function($scope, Project){  
+
+  new Project('testProject');
+   
+}]);
+    
 angular.module('App').factory('Cube', 
 ['Prefab', 'util', '$q', 
 function(Prefab, util, $q){
@@ -177,15 +183,129 @@ return function(){
 };
 }]);
 
+angular.module('App').factory('Grid', 
+['Prefab', 'util', '$q', 'Hex',
+function(Prefab, util, $q, Hex){
+  
+return function(settings){
+  Prefab.call(this);
+  settings = settings || {};
+
+//public fields
+  this.name  = 'Grid';
+  this.id    = '';
+  this.layer = '';
+  this.meshes = [];
+  this.components = [];
+  this.uid = _.uniqueId();
+  this.x = settings.x || 0;
+  this.y = settings.y || 0;
+  this.size = settings.size || {width: 10, height: 10};
+
+//public methods
+//-----------------------------------------------------------------------------
+  this.Start = function(loader){
+    
+    //makeOutline.bind(this)();
+
+  };
+//private methods
+//-----------------------------------------------------------------------------
+
+};
+}]);
+
+angular.module('App').factory('Hex', 
+['Prefab', 'util', '$q',
+function(Prefab, util, $q){
+  
+return function(settings){
+  Prefab.call(this);
+  settings = settings || {};
+
+//public fields
+  this.name  = 'Hex';
+  this.id    = '';
+  this.layer = '';
+  this.meshes = [];
+  this.components = [];
+  this.uid = _.uniqueId();
+  this.x = settings.x || 0;
+  this.y = settings.y || 0;
+  this.size = settings.size || 1;
+
+//public methods
+//-----------------------------------------------------------------------------
+  this.Start = function(loader){
+    
+    makeOutline.bind(this)();
+
+  };
+//private methods
+//-----------------------------------------------------------------------------
+  function makeOutline(){
+    var material = new THREE.LineBasicMaterial({color: 0x0000ff});
+    var geometry = new THREE.Geometry();
+    var center = new THREE.Vector2(this.x, this.y);
+    
+    _.times(6, function(i){
+      var corner = getHexCorner(center, this.size, i);
+      geometry.vertices.push(new THREE.Vector3(corner.x, 0, corner.y));
+    }.bind(this));
+
+    geometry.vertices.push(geometry.vertices[0]);
+
+    this.add(new THREE.Line(geometry, material));
+  }
+//-----------------------------------------------------------------------------
+  function getHexCorner(center, size, i){
+    var angle_rad = util.Deg2Rad(60 * i + 30);
+    return new THREE.Vector2(center.x + size * Math.cos(angle_rad), center.y + size * Math.sin(angle_rad)); 
+  } 
+//-----------------------------------------------------------------------------
+
+};
+}]);
+
 angular.module('App').factory('Planet', 
 ['Prefab', 'util', '$q', 
 function(Prefab, util, $q){
   
 return function(){
   Prefab.call(this);
+  
+  this.components = ['Rotate'];
 
 //public fields
+  var scope = this; 
+  this.size = 2;
 
+
+//public methods
+//-----------------------------------------------------------------------------
+  this.Start = function(loader){     
+    this.add( makeMesh() );
+
+    this.components.Rotate.velocity.x = 
+    this.components.Rotate.velocity.y = 
+    this.components.Rotate.velocity.z = util.Deg2Rad(0.3);    
+  };
+//-----------------------------------------------------------------------------
+  function makeMesh(){
+    var segments = 10;
+    var geometry = spheriphyCube(new THREE.BoxGeometry( scope.size, scope.size, scope.size, segments, segments, segments ));
+    var material = new THREE.MeshBasicMaterial( {color: 0x00ff00, wireframe: true} );
+    return new THREE.Mesh( geometry, material );
+  }
+//-----------------------------------------------------------------------------
+  function spheriphyCube(cube){
+    _.each(cube.vertices, function(vert){
+      vert.normalize().multiplyScalar(scope.size);
+    });
+
+    return cube;
+  }
+//-----------------------------------------------------------------------------
 };
 }]);
 
@@ -242,6 +362,8 @@ return function(settings){
  
   this.renderer = new Renderer({ project: this.project, containerID: 'WebGL' });
   this.camera   = makeCamera.bind(this)();
+  this.camera.position.y = 10;
+  this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   this.controls = undefined;   
 
 //public methods 
@@ -654,10 +776,3 @@ return function(){
 
 };
 }]);
-
-angular.module('App').controller('mainCtrl', ['$scope', 'Project', function($scope, Project){  
-
-  new Project('testProject');
-   
-}]);
-    

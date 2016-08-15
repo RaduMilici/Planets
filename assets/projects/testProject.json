@@ -2,8 +2,8 @@
   "prefabs":
   [
     {
-      "name": "Planet",
-      "position": { "x": 0, "y": 0, "z": -10 }
+      "name": "Grid",
+      "position": { "x": 0, "y": 0, "z": 0 }
     }
   ]
 }

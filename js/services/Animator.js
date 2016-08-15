@@ -10,6 +10,8 @@ return function(settings){
  
   this.renderer = new Renderer({ project: this.project, containerID: 'WebGL' });
   this.camera   = makeCamera.bind(this)();
+  this.camera.position.y = 100;
+  this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   this.controls = undefined;   
 
 //public methods 
