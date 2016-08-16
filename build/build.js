@@ -196,20 +196,51 @@ return function(settings){
   this.id    = '';
   this.layer = '';
   this.meshes = [];
-  this.components = [];
+  this.components = ['Rotate'];
   this.uid = _.uniqueId();
   this.x = settings.x || 0;
   this.y = settings.y || 0;
   this.size = settings.size || {width: 10, height: 10};
 
+//private fields
+  var hexSize = 0.5;
+
 //public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
     
-    //makeOutline.bind(this)();
+    _.times(100, function(w){
+      _.times(100, function(h){
+
+        var hexCoords = getHexCoords(w, h);
+        var settings = { 
+          x: hexCoords.x,
+          y: hexCoords.y, 
+          size: hexSize 
+        };
+
+        loader.injector.LoadPrefab("Hex", settings)
+        .then(function(hex){
+          hex.Start(loader);
+          this.add(hex);
+        }.bind(this));
+
+      }.bind(this));//height  
+    }.bind(this));//width  
+
+    this.components.Rotate.velocity.x = 
+    this.components.Rotate.velocity.y = 
+    this.components.Rotate.velocity.z = util.Deg2Rad(0.3);     
 
   };
 //private methods
+//-----------------------------------------------------------------------------
+  function getHexCoords(x, y){
+    var hexHeight = hexSize * 2;
+    var hexWidth = Math.sqrt(3) / 2 * hexHeight;
+
+    return { x: x * hexWidth, y: y * hexHeight };
+  }
 //-----------------------------------------------------------------------------
 
 };
@@ -230,40 +261,50 @@ return function(settings){
   this.meshes = [];
   this.components = [];
   this.uid = _.uniqueId();
+
   this.x = settings.x || 0;
   this.y = settings.y || 0;
   this.size = settings.size || 1;
+  this.points = [];
 
 //public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
     
     makeOutline.bind(this)();
+    //console.log(this.children[0].material)
 
   };
 //private methods
 //-----------------------------------------------------------------------------
   function makeOutline(){
-    var material = new THREE.LineBasicMaterial({color: 0x0000ff});
-    var geometry = new THREE.Geometry();
+    var material = new THREE.LineBasicMaterial({color: 0x0000ff, vertexColors: THREE.VertexColors,
+					blending: THREE.AdditiveBlending,
+					transparent: true});
     var center = new THREE.Vector2(this.x, this.y);
     
     _.times(6, function(i){
       var corner = getHexCorner(center, this.size, i);
-      geometry.vertices.push(new THREE.Vector3(corner.x, 0, corner.y));
+       this.points.push(new THREE.Vector3(corner.x, 0, corner.y));
     }.bind(this));
 
-    geometry.vertices.push(geometry.vertices[0]);
+    this.points.push( this.points[0] );
 
-    this.add(new THREE.Line(geometry, material));
+    var geometry = new THREE.BufferGeometry();
+    geometry.addAttribute( 'position', new THREE.BufferAttribute( this.points, 3 ).setDynamic( true ) );
+    geometry.computeBoundingSphere();
+		geometry.setDrawRange( 0, 0 );
+    this.add(new THREE.LineSegments(geometry, material));
   }
 //-----------------------------------------------------------------------------
   function getHexCorner(center, size, i){
     var angle_rad = util.Deg2Rad(60 * i + 30);
-    return new THREE.Vector2(center.x + size * Math.cos(angle_rad), center.y + size * Math.sin(angle_rad)); 
+    return new THREE.Vector2(
+      center.x + size * Math.cos(angle_rad), 
+      center.y + size * Math.sin(angle_rad)); 
   } 
 //-----------------------------------------------------------------------------
-
+  return this;
 };
 }]);
 
@@ -362,7 +403,7 @@ return function(settings){
  
   this.renderer = new Renderer({ project: this.project, containerID: 'WebGL' });
   this.camera   = makeCamera.bind(this)();
-  this.camera.position.y = 10;
+  this.camera.position.y = 100;
   this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   this.controls = undefined;   
 
@@ -397,29 +438,29 @@ function($q, $injector, paths, updater){
 
 //public methods
 //-----------------------------------------------------------------------------
-  	this.LoadPrefab = function(name, position){ 
+	this.LoadPrefab = function(name, settings){ 
 
-    	var defer = $q.defer();
-    //constructor
-    	var InjectedPrefab = inject(name);
-    //instantiated
-    	var obj = new THREE.Object3D();
-    	var prefab = new InjectedPrefab();
-    //assign all THREE.Object3D properties
-    	prefab = _.extend(new THREE.Object3D(), prefab);
-    //load mesh dependencies
-    	loadMeshes.bind(this)(prefab)
-    //load component dependencies
-      .then(loadComponents.bind(this))
-    //add to scene and call Start()
-      .then(function(){
-        	prefab.loader = this.loader;
-        	defer.resolve(prefab);
-      }.bind(this));
+		var defer = $q.defer();
+	//constructor
+		var InjectedPrefab = inject(name);
+	//instantiated
+		var obj = new THREE.Object3D();
+		var prefab = new InjectedPrefab(settings);
+	//assign all THREE.Object3D properties
+		prefab = _.extend(new THREE.Object3D(), prefab);
+	//load mesh dependencies
+		loadMeshes.bind(this)(prefab)
+	//load component dependencies
+		.then(loadComponents.bind(this))
+	//add to scene and call Start()
+		.then(function(){
+				prefab.loader = this.loader;
+				defer.resolve(prefab);
+		}.bind(this));
 
-    	return defer.promise;
+		return defer.promise;
 
-  };
+	};
 //-----------------------------------------------------------------------------
   	this.AddComponent = function(prefab, componentName){
 

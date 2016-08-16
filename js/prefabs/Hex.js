@@ -17,6 +17,7 @@ return function(settings){
   this.x = settings.x || 0;
   this.y = settings.y || 0;
   this.size = settings.size || 1;
+  this.points = new Float32Array( 36 );
 
 //public methods
 //-----------------------------------------------------------------------------
@@ -29,18 +30,33 @@ return function(settings){
 //private methods
 //-----------------------------------------------------------------------------
   function makeOutline(){
-    var material = new THREE.LineBasicMaterial({color: 0x0000ff});
-    var geometry = new THREE.Geometry();
     var center = new THREE.Vector2(this.x, this.y);
-    
+    var corners = [];
+
     _.times(6, function(i){
-      var corner = getHexCorner(center, this.size, i);
-      geometry.vertices.push(new THREE.Vector3(corner.x, 0, corner.y));
+      corners[i] = getHexCorner(center, this.size, i);
     }.bind(this));
 
-    geometry.vertices.push(geometry.vertices[0]);
+    for(var i = 6; i < 36; i += 6){
+      var prevCorner = corners[i / 6 - 1];
+      var curCorner = corners[i / 6];
 
-    this.add(new THREE.Line(geometry, material));
+      this.points[i - 6] = curCorner.x;
+      this.points[i - 5] = 0;
+      this.points[i - 4] = curCorner.y;
+
+      this.points[i - 3] = prevCorner.x;
+      this.points[i - 2] = 0;
+      this.points[i - 1] = prevCorner.y;
+    } 
+
+    this.points[30] = corners[0].x;
+    this.points[31] = 0;
+    this.points[32] = corners[0].y;
+
+    this.points[33] = corners[5].x;
+    this.points[34] = 0;
+    this.points[35] = corners[5].y;
   }
 //-----------------------------------------------------------------------------
   function getHexCorner(center, size, i){
