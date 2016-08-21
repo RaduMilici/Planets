@@ -22,15 +22,98 @@ angular.module('App', ['ui.router'])
 }]);
 
 angular.module('App').factory('Project', 
-['Loader', 'Animator', 
-function(Loader, Animator){
+['Loader', 'Animator', 'Map',
+function(Loader, Animator, Map){
   
 return function(name){
 
 //public fields
   this.loader = new Loader(name);
-  this.animate = new Animator({project: this});
-  this.animate.Start(); 
+  this.animator = new Animator({project: this});
+  new Map({project: this});
+  this.loader.LoadPrefab("TopDownCam", {animator: this.animator})
+  this.animator.Start(); 
+
+};
+}]);
+
+angular.module('App').factory('Hex', 
+['Prefab', 'util', '$q',
+function(Prefab, util, $q){
+  
+return function(settings){
+  settings = settings || {};
+
+//public fields
+  this.name  = 'Hex';
+  this.id    = '';
+  this.layer = '';
+  this.meshes = [];
+  this.components = [];
+  this.uid = _.uniqueId();
+
+  this.x = settings.x || 0;
+  this.y = settings.y || 0;
+  this.size = settings.size || 1;
+  this.points = new Float32Array( 36 );
+
+//public methods
+//-----------------------------------------------------------------------------
+  this.Start = function(loader){    
+    makeOutline.bind(this)();
+  };
+//private methods
+//-----------------------------------------------------------------------------
+  function makeOutline(){
+    var center = new THREE.Vector2(this.x, this.y);
+    var corners = [];
+
+    _.times(6, function(i){
+      corners[i] = getHexCorner(center, this.size, i);
+    }.bind(this));
+
+    for(var i = 6; i < 36; i += 6){
+      var prevCorner = corners[i / 6 - 1];
+      var curCorner = corners[i / 6];
+
+      this.points[i - 6] = curCorner.x;
+      this.points[i - 5] = 0;
+      this.points[i - 4] = curCorner.y;
+
+      this.points[i - 3] = prevCorner.x;
+      this.points[i - 2] = 0;
+      this.points[i - 1] = prevCorner.y;
+    } 
+
+    this.points[30] = corners[0].x;
+    this.points[31] = 0;
+    this.points[32] = corners[0].y;
+
+    this.points[33] = corners[5].x;
+    this.points[34] = 0;
+    this.points[35] = corners[5].y;
+  }
+//-----------------------------------------------------------------------------
+  function getHexCorner(center, size, i){
+    var angle_rad = util.Deg2Rad(60 * i + 30);
+    return new THREE.Vector2(
+      center.x + size * Math.cos(angle_rad), 
+      center.y + size * Math.sin(angle_rad)); 
+  } 
+//-----------------------------------------------------------------------------  
+};
+}]);
+
+angular.module('App').factory('Map', 
+['Prefab', 'util', '$q', 'Grid',
+function(Prefab, util, $q, Grid){
+
+return function(settings){
+  this.project = settings.project;
+  this.loader = this.project.loader;
+
+  //load grid
+  this.loader.LoadPrefab('Grid', settings.grid);
 
 };
 }]);
@@ -198,113 +281,58 @@ return function(settings){
   this.meshes = [];
   this.components = ['Rotate'];
   this.uid = _.uniqueId();
-  this.x = settings.x || 0;
-  this.y = settings.y || 0;
-  this.size = settings.size || {width: 10, height: 10};
+  
+  this.size = settings.size || { width: 50, height: 50 };
 
 //private fields
-  var hexSize = 0.5;
+  var hexSize = 1;
 
 //public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
-    
-    _.times(100, function(w){
-      _.times(100, function(h){
+    generate.bind(this)();
+    /*
+    this.components.Rotate.velocity.x = 
+    this.components.Rotate.velocity.y = util.Deg2Rad(0.5);
+    this.components.Rotate.velocity.z = util.Deg2Rad(0.5);
+    */
+  };
+//private methods
+//-----------------------------------------------------------------------------
+  function generate(){
+    var geometry = new THREE.BufferGeometry();
+    var points = new Float32Array( this.size.width * this.size.height * 36 );
+    var hexesGenerated = 0;
+
+    _.times(this.size.width, function(w){
+      _.times(this.size.height, function(h){
 
         var hexCoords = getHexCoords(w, h);
-        var settings = { 
-          x: hexCoords.x,
-          y: hexCoords.y, 
-          size: hexSize 
-        };
-
-        loader.injector.LoadPrefab("Hex", settings)
-        .then(function(hex){
-          hex.Start(loader);
-          this.add(hex);
-        }.bind(this));
+        var settings = { x: hexCoords.x, y: hexCoords.y, size: hexSize };
+        
+        hex = new Hex(settings);
+        hex.Start(this.loader);
+        points.set(hex.points, hexesGenerated++ * 36);
 
       }.bind(this));//height  
     }.bind(this));//width  
 
-    this.components.Rotate.velocity.x = 
-    this.components.Rotate.velocity.y = 
-    this.components.Rotate.velocity.z = util.Deg2Rad(0.3);     
-
-  };
-//private methods
+    geometry.addAttribute( 'position', new THREE.BufferAttribute( points, 3 ).setDynamic( true ) );
+    this.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: 0x0000ff})));
+  }
 //-----------------------------------------------------------------------------
   function getHexCoords(x, y){
     var hexHeight = hexSize * 2;
     var hexWidth = Math.sqrt(3) / 2 * hexHeight;
 
+    //offsets
+    x += (y % 2) * 0.5;
+    hexHeight -= hexHeight / 4;
+
     return { x: x * hexWidth, y: y * hexHeight };
   }
 //-----------------------------------------------------------------------------
 
-};
-}]);
-
-angular.module('App').factory('Hex', 
-['Prefab', 'util', '$q',
-function(Prefab, util, $q){
-  
-return function(settings){
-  Prefab.call(this);
-  settings = settings || {};
-
-//public fields
-  this.name  = 'Hex';
-  this.id    = '';
-  this.layer = '';
-  this.meshes = [];
-  this.components = [];
-  this.uid = _.uniqueId();
-
-  this.x = settings.x || 0;
-  this.y = settings.y || 0;
-  this.size = settings.size || 1;
-  this.points = [];
-
-//public methods
-//-----------------------------------------------------------------------------
-  this.Start = function(loader){
-    
-    makeOutline.bind(this)();
-    //console.log(this.children[0].material)
-
-  };
-//private methods
-//-----------------------------------------------------------------------------
-  function makeOutline(){
-    var material = new THREE.LineBasicMaterial({color: 0x0000ff, vertexColors: THREE.VertexColors,
-					blending: THREE.AdditiveBlending,
-					transparent: true});
-    var center = new THREE.Vector2(this.x, this.y);
-    
-    _.times(6, function(i){
-      var corner = getHexCorner(center, this.size, i);
-       this.points.push(new THREE.Vector3(corner.x, 0, corner.y));
-    }.bind(this));
-
-    this.points.push( this.points[0] );
-
-    var geometry = new THREE.BufferGeometry();
-    geometry.addAttribute( 'position', new THREE.BufferAttribute( this.points, 3 ).setDynamic( true ) );
-    geometry.computeBoundingSphere();
-		geometry.setDrawRange( 0, 0 );
-    this.add(new THREE.LineSegments(geometry, material));
-  }
-//-----------------------------------------------------------------------------
-  function getHexCorner(center, size, i){
-    var angle_rad = util.Deg2Rad(60 * i + 30);
-    return new THREE.Vector2(
-      center.x + size * Math.cos(angle_rad), 
-      center.y + size * Math.sin(angle_rad)); 
-  } 
-//-----------------------------------------------------------------------------
-  return this;
 };
 }]);
 
@@ -391,6 +419,36 @@ return function(){
 };
 }]);
 
+angular.module('App').factory('TopDownCam', 
+['Prefab', 'util', '$q', 
+function(Prefab, util, $q){
+  
+return function(settings){
+  Prefab.call(this);
+  settings = settings || {};
+
+  this.animator = settings.animator;
+  this.camera = this.animator.camera;
+
+  this.speed = settings.speed || 5;
+
+//-----------------------------------------------------------------------------
+  this.Start = function(loader){ 
+
+  }; 
+//-----------------------------------------------------------------------------
+  this.Update = function(deltaTime){
+
+    //this.camera.position.x += this.speed * deltaTime;
+    //console.log(Math.round(this.camera.position.x))
+    //console.log(deltaTime)
+
+  };
+//-----------------------------------------------------------------------------
+
+
+}
+}]);
 angular.module('App').factory('Animator', ['Renderer', function(Renderer){
 return function(settings){
   
@@ -403,7 +461,7 @@ return function(settings){
  
   this.renderer = new Renderer({ project: this.project, containerID: 'WebGL' });
   this.camera   = makeCamera.bind(this)();
-  this.camera.position.y = 100;
+  this.camera.position.y = 20;
   this.camera.lookAt(new THREE.Vector3(0, 0, 0));
   this.controls = undefined;   
 
@@ -454,8 +512,12 @@ function($q, $injector, paths, updater){
 		.then(loadComponents.bind(this))
 	//add to scene and call Start()
 		.then(function(){
-				prefab.loader = this.loader;
-				defer.resolve(prefab);
+			prefab.loader = this.loader;
+			
+			if(prefab.Update)
+				updater.Add(prefab);
+				
+			defer.resolve(prefab);
 		}.bind(this));
 
 		return defer.promise;
@@ -580,11 +642,13 @@ return function(name){
     return defer.promise;
   };
 //-----------------------------------------------------------------------------
-  this.LoadPrefab = function(name, position){
+  this.LoadPrefab = function(name, settings, position){
+    position = position || new THREE.Vector3();
+    settings = settings || {};
 
     var defer = $q.defer();
 
-    this.injector.LoadPrefab(name).then(function(prefab){
+    this.injector.LoadPrefab(name, settings).then(function(prefab){
       prefab.position.set(position.x, position.y, position.z);
       this.Add(prefab);
       prefab.Start(this);
@@ -683,11 +747,11 @@ return function(settings){
 
     now = _.now();
     passedTime = now - currentTime;
-    deltaTime = passedTime / interval;
+    deltaTime = passedTime / 1000;
     currentTime = now;
 
     updater.Update(deltaTime, passedTime);
-    this.renderer.render(this.project.loader.scene, this.project.animate.camera);
+    this.renderer.render(this.project.loader.scene, this.project.animator.camera);
     frameID = requestAnimationFrame( this.Render.bind(this) );  
 
   };
@@ -721,6 +785,7 @@ return function(settings){
 
 };
 }]);
+
 
 angular.module('App').factory('paths', [function(){
 return new (function(){

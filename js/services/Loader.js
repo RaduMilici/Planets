@@ -48,11 +48,13 @@ return function(name){
     return defer.promise;
   };
 //-----------------------------------------------------------------------------
-  this.LoadPrefab = function(name, position){
+  this.LoadPrefab = function(name, settings, position){
+    position = position || new THREE.Vector3();
+    settings = settings || {};
 
     var defer = $q.defer();
 
-    this.injector.LoadPrefab(name).then(function(prefab){
+    this.injector.LoadPrefab(name, settings).then(function(prefab){
       prefab.position.set(position.x, position.y, position.z);
       this.Add(prefab);
       prefab.Start(this);

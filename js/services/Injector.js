@@ -26,8 +26,12 @@ function($q, $injector, paths, updater){
 		.then(loadComponents.bind(this))
 	//add to scene and call Start()
 		.then(function(){
-				prefab.loader = this.loader;
-				defer.resolve(prefab);
+			prefab.loader = this.loader;
+			
+			if(prefab.Update)
+				updater.Add(prefab);
+				
+			defer.resolve(prefab);
 		}.bind(this));
 
 		return defer.promise;

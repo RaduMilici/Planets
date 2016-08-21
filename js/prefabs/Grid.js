@@ -22,33 +22,36 @@ return function(settings){
 //public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){
+    generate.bind(this)();
+    /*
+    this.components.Rotate.velocity.x = 
+    this.components.Rotate.velocity.y = util.Deg2Rad(0.5);
+    this.components.Rotate.velocity.z = util.Deg2Rad(0.5);
+    */
+  };
+//private methods
+//-----------------------------------------------------------------------------
+  function generate(){
     var geometry = new THREE.BufferGeometry();
     var points = new Float32Array( this.size.width * this.size.height * 36 );
-    var hexes = 0;
+    var hexesGenerated = 0;
 
     _.times(this.size.width, function(w){
       _.times(this.size.height, function(h){
 
         var hexCoords = getHexCoords(w, h);
         var settings = { x: hexCoords.x, y: hexCoords.y, size: hexSize };
-
-        loader.injector.LoadPrefab('Hex', settings)
-        .then(function(hex){
-          hex.Start(loader);
-          points.set(hex.points, hexes++ * 36);
-        }.bind(this));
+        
+        hex = new Hex(settings);
+        hex.Start(this.loader);
+        points.set(hex.points, hexesGenerated++ * 36);
 
       }.bind(this));//height  
     }.bind(this));//width  
 
     geometry.addAttribute( 'position', new THREE.BufferAttribute( points, 3 ).setDynamic( true ) );
     this.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: 0x0000ff})));
-
-    /*this.components.Rotate.velocity.x = 
-    this.components.Rotate.velocity.y = util.Deg2Rad(0.5);
-    this.components.Rotate.velocity.z = util.Deg2Rad(0.5);*/
-  };
-//private methods
+  }
 //-----------------------------------------------------------------------------
   function getHexCoords(x, y){
     var hexHeight = hexSize * 2;

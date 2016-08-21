@@ -7,6 +7,8 @@ return function(settings){
   this.container = getContainer(settings.containerID || 'WebGL');
   this.width = $(this.container).outerWidth();
   this.height = $(this.container).outerHeight();
+  this.windowWidth = $(window).width();
+  this.windowHeight = $(window).height();
   this.renderer = makeRenderer.bind(this)(this.width, this.height);
  
 //private fields
@@ -24,11 +26,11 @@ return function(settings){
 
     now = _.now();
     passedTime = now - currentTime;
-    deltaTime = passedTime / interval;
+    deltaTime = passedTime / 1000;
     currentTime = now;
 
     updater.Update(deltaTime, passedTime);
-    this.renderer.render(this.project.loader.scene, this.project.animate.camera);
+    this.renderer.render(this.project.loader.scene, this.project.animator.camera);
     frameID = requestAnimationFrame( this.Render.bind(this) );  
 
   };

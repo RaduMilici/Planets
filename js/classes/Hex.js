@@ -3,7 +3,6 @@ angular.module('App').factory('Hex',
 function(Prefab, util, $q){
   
 return function(settings){
-  Prefab.call(this);
   settings = settings || {};
 
 //public fields
@@ -21,11 +20,8 @@ return function(settings){
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.Start = function(loader){
-    
+  this.Start = function(loader){    
     makeOutline.bind(this)();
-    //console.log(this.children[0].material)
-
   };
 //private methods
 //-----------------------------------------------------------------------------
@@ -65,7 +61,6 @@ return function(settings){
       center.x + size * Math.cos(angle_rad), 
       center.y + size * Math.sin(angle_rad)); 
   } 
-//-----------------------------------------------------------------------------
-  return this;
+//-----------------------------------------------------------------------------  
 };
 }]);
