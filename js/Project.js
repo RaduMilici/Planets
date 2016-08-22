@@ -8,7 +8,6 @@ return function(name){
   this.loader = new Loader(name);
   this.animator = new Animator({project: this});
   new Map({project: this});
-  this.loader.LoadPrefab("TopDownCam", {animator: this.animator})
   this.animator.Start(); 
 
 };

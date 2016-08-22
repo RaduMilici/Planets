@@ -14,10 +14,13 @@ return function(settings){
   this.components = ['Rotate'];
   this.uid = _.uniqueId();
   
-  this.size = settings.size || { width: 50, height: 50 };
-
-//private fields
   var hexSize = 1;
+  
+  this.size = settings.size || { width: 10, height: 10 };
+  this.hexHeight = hexSize * 2;
+  this.hexWidth = Math.sqrt(3) / 2 * this.hexHeight;
+  //offsets hertical
+  this.hexHeight -= this.hexHeight / 4;
 
 //public methods
 //-----------------------------------------------------------------------------
@@ -39,7 +42,7 @@ return function(settings){
     _.times(this.size.width, function(w){
       _.times(this.size.height, function(h){
 
-        var hexCoords = getHexCoords(w, h);
+        var hexCoords = getHexCoords.bind(this)(w, h);
         var settings = { x: hexCoords.x, y: hexCoords.y, size: hexSize };
         
         hex = new Hex(settings);
@@ -54,14 +57,9 @@ return function(settings){
   }
 //-----------------------------------------------------------------------------
   function getHexCoords(x, y){
-    var hexHeight = hexSize * 2;
-    var hexWidth = Math.sqrt(3) / 2 * hexHeight;
-
-    //offsets
+    //offsets horizontal
     x += (y % 2) * 0.5;
-    hexHeight -= hexHeight / 4;
-
-    return { x: x * hexWidth, y: y * hexHeight };
+    return { x: x * this.hexWidth, y: y * this.hexHeight };
   }
 //-----------------------------------------------------------------------------
 

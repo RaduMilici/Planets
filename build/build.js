@@ -31,7 +31,6 @@ return function(name){
   this.loader = new Loader(name);
   this.animator = new Animator({project: this});
   new Map({project: this});
-  this.loader.LoadPrefab("TopDownCam", {animator: this.animator})
   this.animator.Start(); 
 
 };
@@ -111,6 +110,7 @@ function(Prefab, util, $q, Grid){
 return function(settings){
   this.project = settings.project;
   this.loader = this.project.loader;
+  this.loader.LoadPrefab("TopDownCam", {animator: this.project.animator})
 
   //load grid
   this.loader.LoadPrefab('Grid', settings.grid);
@@ -420,8 +420,8 @@ return function(){
 }]);
 
 angular.module('App').factory('TopDownCam', 
-['Prefab', 'util', '$q', 
-function(Prefab, util, $q){
+['Prefab', 'util', '$q', 'input',
+function(Prefab, util, $q, input){
   
 return function(settings){
   Prefab.call(this);
@@ -431,21 +431,68 @@ return function(settings){
   this.camera = this.animator.camera;
 
   this.speed = settings.speed || 5;
+  //if mouse is within border on the sides of screen, move cam
+  this.borderPixelSize = 20; 
 
+  //move direction bools
+  var moveLeft = moveRight = moveTop = moveBottom = false;  
+  var enabled = true;
+
+//public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){ 
-
+    input.AddEvent(document, 'mousemove', moveCamera.bind(this));
   }; 
 //-----------------------------------------------------------------------------
   this.Update = function(deltaTime){
+    if(enabled === false)
+      return;
 
-    //this.camera.position.x += this.speed * deltaTime;
-    //console.log(Math.round(this.camera.position.x))
-    //console.log(deltaTime)
+    if(moveRight)
+      this.camera.position.x += this.speed * deltaTime;
+    else if(moveLeft)
+      this.camera.position.x -= this.speed * deltaTime;
 
+    if(moveTop)
+      this.camera.position.z -= this.speed * deltaTime;
+    else if(moveBottom)
+      this.camera.position.z += this.speed * deltaTime;
+    
   };
 //-----------------------------------------------------------------------------
+  this.Toggle = function(bool){
+    enabled = bool;
+  };
+//private methods
+//-----------------------------------------------------------------------------
+  function moveCamera(event){
+    //left right
+    if(event.pageX > this.animator.renderer.windowWidth - this.borderPixelSize){
+      moveRight = true;
+      moveLeft = false;
+    }      
+    else if (event.pageX < this.borderPixelSize){
+      moveRight = false;
+      moveLeft = true;
+    }
+    else 
+      moveRight = moveLeft = false;
 
+    
+    //top bottom
+    if(event.pageY > this.animator.renderer.windowHeight - this.borderPixelSize){
+      moveBottom = true;
+      moveTop = false;
+    }      
+    else if (event.pageY < this.borderPixelSize){
+      moveBottom = false;
+      moveTop = true;
+    }
+    else 
+      moveBottom = moveTop = false;
+    
+  }
+//-----------------------------------------------------------------------------
 
 }
 }]);
@@ -730,6 +777,8 @@ return function(settings){
   this.container = getContainer(settings.containerID || 'WebGL');
   this.width = $(this.container).outerWidth();
   this.height = $(this.container).outerHeight();
+  this.windowWidth = $(window).width();
+  this.windowHeight = $(window).height();
   this.renderer = makeRenderer.bind(this)(this.width, this.height);
  
 //private fields
@@ -786,6 +835,16 @@ return function(settings){
 };
 }]);
 
+angular.module('App').factory('input', [function(){
+return new (function(){
+//-----------------------------------------------------------------------------
+  this.AddEvent = function(selector, type, callback){
+    $(selector)[type](callback);
+  };
+//-----------------------------------------------------------------------------
+  
+})();
+}]);
 
 angular.module('App').factory('paths', [function(){
 return new (function(){
