@@ -8,11 +8,14 @@ return function(settings){
 
   this.animator = settings.animator;
   this.camera = this.animator.camera;
+  this.target = new THREE.Object3D();
   this.grid = settings.grid;
 
-  this.speed = settings.speed || 15;
+  var speed = settings.speed || 15;
+  var height = 15;
+  var angle = 70;
   //if mouse is within border on the sides of screen, move cam
-  this.borderPixelSize = 20; 
+  var borderPixelSize = 20; 
 
 
   var enabled = true;
@@ -33,7 +36,9 @@ return function(settings){
 
 //public methods
 //-----------------------------------------------------------------------------
-  this.Start = function(loader){ 
+  this.Start = function(loader){   
+    this.add(this.target);  
+    setPositions.bind(this)(); 
     input.AddEvent(document, 'mousemove', checkMouse.bind(this));
   }; 
 //-----------------------------------------------------------------------------
@@ -41,17 +46,17 @@ return function(settings){
     if(enabled === false)
       return;
 
-    var val = this.speed * deltaTime;
+    var val = speed * deltaTime;
 
     if(checkLimits.bind(this)('right', val))
-      this.camera.position.x += val;
+      moveCamera.bind(this)('x', val);
     else if(checkLimits.bind(this)('left', val))
-      this.camera.position.x -= val;
+      moveCamera.bind(this)('x', -val);
 
     if(checkLimits.bind(this)('top', val))
-      this.camera.position.z -= val;
+      moveCamera.bind(this)('z', -val);
     else if(checkLimits.bind(this)('bottom', val))
-      this.camera.position.z += val;
+      moveCamera.bind(this)('z', val);
     
   };
 //-----------------------------------------------------------------------------
@@ -62,11 +67,11 @@ return function(settings){
 //-----------------------------------------------------------------------------
   function checkMouse(event){
     //left right
-    if(event.pageX > this.animator.renderer.windowWidth - this.borderPixelSize){
+    if(event.pageX > this.animator.renderer.windowWidth - borderPixelSize){
       move.right = true;
       move.left = false;
     }      
-    else if (event.pageX < this.borderPixelSize){
+    else if (event.pageX < borderPixelSize){
       move.right = false;
       move.left = true;
     }
@@ -75,11 +80,11 @@ return function(settings){
 
     
     //top bottom
-    if(event.pageY > this.animator.renderer.windowHeight - this.borderPixelSize){
+    if(event.pageY > this.animator.renderer.windowHeight - borderPixelSize){
       move.bottom = true;
       move.top = false;
     }      
-    else if (event.pageY < this.borderPixelSize){
+    else if (event.pageY < borderPixelSize){
       move.bottom = false;
       move.top = true;
     }
@@ -88,24 +93,41 @@ return function(settings){
     
   }
 //-----------------------------------------------------------------------------
-  function checkLimits(direction, val) {
-    if(move[direction] === false) 
+  function checkLimits(dir, val) {
+    if(move[dir] === false) 
       return false;
 
-    switch (direction){
+    switch (dir){
       case 'right':
-        return this.camera.position.x + val < limits.right;
+        return this.target.position.x + val < limits.right;
       case 'left':
-        return this.camera.position.x - val > limits.left;
+        return this.target.position.x - val > limits.left;
       case 'top':
-        return this.camera.position.z + val > limits.top;
+        return this.target.position.z + val > limits.top;
       case 'bottom':
-        return this.camera.position.z - val < limits.bottom;
+        return this.target.position.z - val < limits.bottom;
       default:
         return false;
     }
   }
 //-----------------------------------------------------------------------------
+  function setPositions(pos){
+    pos = pos || new THREE.Vector3();
 
+    this.target.position.set(pos.x, 0, pos.z);
+    this.camera.position.copy(pos);
+
+    this.camera.position.z = height * Math.cos(util.Deg2Rad(angle));
+    this.camera.position.y = height * Math.sin(util.Deg2Rad(angle));
+    
+    this.camera.lookAt(this.target.position);
+  }
+//-----------------------------------------------------------------------------
+  function moveCamera(axis, val){
+    this.target.position[axis] += val;
+    this.camera.position[axis] += val;
+    this.camera.lookAt(this.target.position);
+  }
+//-----------------------------------------------------------------------------
 }
 }]);

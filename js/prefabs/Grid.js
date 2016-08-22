@@ -19,7 +19,7 @@ return function(settings){
   this.size = settings.size || { width: 10, height: 10 };
   this.hexHeight = hexSize * 2;
   this.hexWidth = Math.sqrt(3) / 2 * this.hexHeight;
-  //offsets hertical
+  //offsets vertical
   this.hexHeight -= this.hexHeight / 4;
 
 //public methods
@@ -53,7 +53,7 @@ return function(settings){
     }.bind(this));//width  
 
     geometry.addAttribute( 'position', new THREE.BufferAttribute( points, 3 ).setDynamic( true ) );
-    this.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({color: 0x0000ff})));
+    this.add(new THREE.LineSegments(geometry, new THREE.LineBasicMaterial({ color: 0x0000ff })));
   }
 //-----------------------------------------------------------------------------
   function getHexCoords(x, y){

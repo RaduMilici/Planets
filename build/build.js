@@ -110,11 +110,31 @@ function(Prefab, util, $q, Grid){
 return function(settings){
   this.project = settings.project;
   this.loader = this.project.loader;
-  this.loader.LoadPrefab("TopDownCam", {animator: this.project.animator})
+  this.grid = undefined;
 
-  //load grid
-  this.loader.LoadPrefab('Grid', settings.grid);
+//-----------------------------------------------------------------------------
+  (function Start() {
 
+    loadGrid.bind(this)()
+    .then(function(grid){
+      this.grid = grid;
+      loadTopDownCam.bind(this)();
+    }.bind(this));
+
+  }.bind(this)());
+//private methods
+//-----------------------------------------------------------------------------
+  function loadGrid() {
+    return this.loader.LoadPrefab('Grid', settings.grid);
+  }
+//-----------------------------------------------------------------------------
+  function loadTopDownCam() {
+    return this.loader.LoadPrefab('TopDownCam', {
+      animator: this.project.animator,
+      grid: this.grid
+    });
+  }
+//-----------------------------------------------------------------------------
 };
 }]);
 
@@ -282,10 +302,13 @@ return function(settings){
   this.components = ['Rotate'];
   this.uid = _.uniqueId();
   
-  this.size = settings.size || { width: 50, height: 50 };
-
-//private fields
   var hexSize = 1;
+  
+  this.size = settings.size || { width: 10, height: 10 };
+  this.hexHeight = hexSize * 2;
+  this.hexWidth = Math.sqrt(3) / 2 * this.hexHeight;
+  //offsets hertical
+  this.hexHeight -= this.hexHeight / 4;
 
 //public methods
 //-----------------------------------------------------------------------------
@@ -307,7 +330,7 @@ return function(settings){
     _.times(this.size.width, function(w){
       _.times(this.size.height, function(h){
 
-        var hexCoords = getHexCoords(w, h);
+        var hexCoords = getHexCoords.bind(this)(w, h);
         var settings = { x: hexCoords.x, y: hexCoords.y, size: hexSize };
         
         hex = new Hex(settings);
@@ -322,14 +345,9 @@ return function(settings){
   }
 //-----------------------------------------------------------------------------
   function getHexCoords(x, y){
-    var hexHeight = hexSize * 2;
-    var hexWidth = Math.sqrt(3) / 2 * hexHeight;
-
-    //offsets
+    //offsets horizontal
     x += (y % 2) * 0.5;
-    hexHeight -= hexHeight / 4;
-
-    return { x: x * hexWidth, y: y * hexHeight };
+    return { x: x * this.hexWidth, y: y * this.hexHeight };
   }
 //-----------------------------------------------------------------------------
 
@@ -429,34 +447,50 @@ return function(settings){
 
   this.animator = settings.animator;
   this.camera = this.animator.camera;
+  this.grid = settings.grid;
 
-  this.speed = settings.speed || 5;
+  this.speed = settings.speed || 15;
   //if mouse is within border on the sides of screen, move cam
   this.borderPixelSize = 20; 
 
-  //move direction bools
-  var moveLeft = moveRight = moveTop = moveBottom = false;  
+
   var enabled = true;
+  //move direction limits
+  var limits = {
+    left: 0,
+    right: this.grid.size.width * this.grid.hexWidth,
+    top: 0,
+    bottom: this.grid.size.height * this.grid.hexHeight
+  };
+  //move direction bools
+  var move = {
+    left: false,
+    right: false,
+    top: false,
+    bottom: false
+  };
 
 //public methods
 //-----------------------------------------------------------------------------
   this.Start = function(loader){ 
-    input.AddEvent(document, 'mousemove', moveCamera.bind(this));
+    input.AddEvent(document, 'mousemove', checkMouse.bind(this));
   }; 
 //-----------------------------------------------------------------------------
   this.Update = function(deltaTime){
     if(enabled === false)
       return;
 
-    if(moveRight)
-      this.camera.position.x += this.speed * deltaTime;
-    else if(moveLeft)
-      this.camera.position.x -= this.speed * deltaTime;
+    var val = this.speed * deltaTime;
 
-    if(moveTop)
-      this.camera.position.z -= this.speed * deltaTime;
-    else if(moveBottom)
-      this.camera.position.z += this.speed * deltaTime;
+    if(checkLimits.bind(this)('right', val))
+      this.camera.position.x += val;
+    else if(checkLimits.bind(this)('left', val))
+      this.camera.position.x -= val;
+
+    if(checkLimits.bind(this)('top', val))
+      this.camera.position.z -= val;
+    else if(checkLimits.bind(this)('bottom', val))
+      this.camera.position.z += val;
     
   };
 //-----------------------------------------------------------------------------
@@ -465,32 +499,50 @@ return function(settings){
   };
 //private methods
 //-----------------------------------------------------------------------------
-  function moveCamera(event){
+  function checkMouse(event){
     //left right
     if(event.pageX > this.animator.renderer.windowWidth - this.borderPixelSize){
-      moveRight = true;
-      moveLeft = false;
+      move.right = true;
+      move.left = false;
     }      
     else if (event.pageX < this.borderPixelSize){
-      moveRight = false;
-      moveLeft = true;
+      move.right = false;
+      move.left = true;
     }
     else 
-      moveRight = moveLeft = false;
+      move.right = move.left = false;
 
     
     //top bottom
     if(event.pageY > this.animator.renderer.windowHeight - this.borderPixelSize){
-      moveBottom = true;
-      moveTop = false;
+      move.bottom = true;
+      move.top = false;
     }      
     else if (event.pageY < this.borderPixelSize){
-      moveBottom = false;
-      moveTop = true;
+      move.bottom = false;
+      move.top = true;
     }
     else 
-      moveBottom = moveTop = false;
+      move.bottom = move.top = false;
     
+  }
+//-----------------------------------------------------------------------------
+  function checkLimits(direction, val) {
+    if(move[direction] === false) 
+      return false;
+
+    switch (direction){
+      case 'right':
+        return this.camera.position.x + val < limits.right;
+      case 'left':
+        return this.camera.position.x - val > limits.left;
+      case 'top':
+        return this.camera.position.z + val > limits.top;
+      case 'bottom':
+        return this.camera.position.z - val < limits.bottom;
+      default:
+        return false;
+    }
   }
 //-----------------------------------------------------------------------------
 
